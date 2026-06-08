@@ -1,0 +1,6 @@
+faiss-cpu
+sentence-transformers
+google-genai
+emoji
+numpy
+python-dotenv
