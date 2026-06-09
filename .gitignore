@@ -1,0 +1,17 @@
+# Environment variables
+.env
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Private chat data (Strongly recommended so you don't accidentally push your WhatsApp chats to GitHub)
+data/
+
+# OS generated files
+.DS_Store

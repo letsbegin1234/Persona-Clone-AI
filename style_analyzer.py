@@ -3,6 +3,139 @@ import re
 from collections import Counter
 
 
+# Multilingual transliteration patterns — maps language name to common patterns
+LANGUAGE_PATTERNS = {
+    "Telugu": [
+        'undi', 'undhi', 'ante', 'kadha', 'enti', 'chala', 'baaga',
+        'ledu', 'ledhu', 'avunu', 'kaadu', 'mari', 'inka', 'chesth',
+        'velli', 'vacch', 'untey', 'aithe', 'chepp', 'cheyy',
+        'manchi', 'bagundh', 'anna', 'akka', 'ohhh', 'haa', 'haaa',
+        'emo', 'ala', 'ela', 'entha', 'endh', 'eppu', 'ikka',
+        'poyav', 'vachav', 'unnav', 'chesav', 'tinn', 'padd',
+        'nuvvu', 'meeru', 'naaku', 'vaadu', 'thinu', 'raave',
+    ],
+    "Hindi": [
+        'kya', 'hai', 'nahi', 'yaar', 'bhai', 'accha', 'theek',
+        'kaise', 'kaisa', 'kahan', 'kab', 'kyun', 'abhi', 'bahut',
+        'acha', 'achha', 'mujhe', 'tujhe', 'haan', 'sahi', 'chal',
+        'chalo', 'dekh', 'bata', 'bol', 'sun', 'ruk', 'aaja',
+        'jaana', 'karna', 'hota', 'wala', 'waala', 'kuch', 'aur',
+        'lekin', 'matlab', 'samajh', 'pata', 'mast', 'soch',
+        'dosti', 'pyaar', 'arre', 'oye', 'pakka', 'bilkul',
+    ],
+    "Tamil": [
+        'enna', 'illa', 'poda', 'podi', 'vaanga', 'sollu', 'pannunga',
+        'romba', 'konjam', 'thaan', 'irukku', 'iruku', 'varuvom',
+        'panna', 'solla', 'kelunga', 'theriyum', 'therla', 'innum',
+        'epdi', 'enga', 'yenna', 'ippo', 'appuram', 'pogalaam',
+        'nanba', 'macha', 'thala', 'vanakkam', 'nandri',
+    ],
+    "Kannada": [
+        'enu', 'hege', 'illi', 'alli', 'baa', 'baro', 'maadi',
+        'hogi', 'bandu', 'nodri', 'gottu', 'gottilla', 'chennaag',
+        'thumba', 'yavag', 'yelli', 'yaak', 'houdu', 'illa',
+        'guru', 'maga', 'machha', 'swalpa', 'nimdu', 'nange',
+    ],
+    "Bengali": [
+        'kemon', 'achi', 'acho', 'bhalo', 'kothay', 'keno',
+        'bolo', 'jao', 'eso', 'koro', 'bolchi', 'janona',
+        'hobe', 'korbo', 'jabo', 'khabo', 'dada', 'didi',
+        'ekhane', 'okhane', 'kichu', 'shob', 'amake', 'tomake',
+    ],
+    "Marathi": [
+        'kay', 'aahe', 'nahi', 'kasa', 'kashi', 'kuthe', 'keva',
+        'mala', 'tula', 'tyala', 'yeto', 'jato', 'karto', 'bola',
+        'baghto', 'zala', 'hota', 'nako', 'chya', 'rao',
+    ],
+    "Malayalam": [
+        'enna', 'illa', 'und', 'varu', 'podu', 'aano', 'cheyyuka',
+        'enthu', 'evide', 'ini', 'ippo', 'sheriyaan', 'mathi',
+        'machane', 'chetta', 'chechi', 'potte', 'adipoli',
+    ],
+    "Gujarati": [
+        'kem', 'cho', 'haa', 'naa', 'shu', 'kyaan', 'aavu',
+        'karo', 'jaav', 'bolo', 'samju', 'bhai', 'yaar',
+        'majama', 'chalse', 'thayyu', 'karisu',
+    ],
+    "Punjabi": [
+        'ki', 'haal', 'paaji', 'veere', 'kiven', 'kiddan',
+        'changa', 'theek', 'nahi', 'oye', 'karo', 'jao',
+        'dekho', 'suno', 'billo', 'vadiya',
+    ],
+}
+
+# Common nicknames / address terms across Indian languages
+NICKNAME_PATTERNS = [
+    'bro', 'bruh', 'bhai', 'bhaiya', 'yaar', 'dude', 'man',
+    'ra', 're', 'da', 'di', 'anna', 'akka', 'mama', 'mawa',
+    'macha', 'machha', 'machan', 'machane', 'guru', 'boss',
+    'dada', 'didi', 'chetta', 'chechi', 'paaji', 'veere',
+    'nanba', 'thala', 'oye', 'arre', 'abey', 'abe',
+    'buddy', 'fam', 'mate', 'homie', 'dost', 'maga',
+    'sir', 'maam', 'ji',
+]
+
+
+def detect_languages(messages):
+    """
+    Detect which language(s) are used in the messages by matching
+    transliteration patterns. Returns a list of (language, score, matched_words).
+    """
+    language_scores = {}
+    language_words = {}
+
+    for lang, patterns in LANGUAGE_PATTERNS.items():
+        matched = set()
+        for m in messages:
+            words = re.findall(r'[a-zA-Z]+', m.lower())
+            for w in words:
+                for pattern in patterns:
+                    if pattern in w:
+                        matched.add(w)
+                        break
+
+        if matched:
+            language_scores[lang] = len(matched)
+            language_words[lang] = list(matched)
+
+    # Sort by number of matched words (most likely language first)
+    results = []
+    for lang in sorted(language_scores, key=language_scores.get, reverse=True):
+        results.append((lang, language_scores[lang], language_words[lang][:15]))
+
+    return results
+
+
+def detect_nicknames(messages):
+    """
+    Detect common nicknames/address terms used in messages.
+    Looks for words that appear at the start or end of messages frequently.
+    Returns list of (nickname, count) sorted by frequency.
+    """
+    nickname_counter = Counter()
+
+    for m in messages:
+        words = re.findall(r'[a-zA-Z]+', m.lower())
+        if not words:
+            continue
+
+        # Check first and last words against known nickname patterns
+        for w in [words[0], words[-1]] if len(words) > 1 else [words[0]]:
+            if w in NICKNAME_PATTERNS or any(p == w for p in NICKNAME_PATTERNS):
+                nickname_counter[w] += 1
+
+        # Also check all words but only count if they're short address terms
+        for w in words:
+            if w in NICKNAME_PATTERNS and len(w) <= 5:
+                nickname_counter[w] += 1
+
+    # Return nicknames that appear at least 3 times
+    results = [(nick, count) for nick, count in nickname_counter.most_common(10)
+               if count >= 3]
+
+    return results
+
+
 def style_summary(messages):
     """
     Analyze the target person's messages to build a comprehensive style profile.
@@ -53,26 +186,20 @@ def style_summary(messages):
     common_words = [w for w, c in word_freq.most_common(30)
                     if w not in stop_words and c >= 2][:15]
 
-    # --- Telugu transliteration detection ---
-    # Common Telugu transliteration patterns
-    telugu_patterns = [
-        'undi', 'undhi', 'ante', 'kadha', 'enti', 'chala', 'baaga',
-        'ledu', 'ledhu', 'avunu', 'kaadu', 'mari', 'inka', 'chesth',
-        'velli', 'vacch', 'untey', 'aithe', 'chepp', 'cheyy',
-        'manchi', 'bagundh', 'anna', 'akka', 'ohhh', 'haa', 'haaa',
-        'emo', 'ala', 'ela', 'entha', 'endh', 'eppu', 'ikka',
-        'poyav', 'vachav', 'unnav', 'chesav', 'tinn', 'padd',
-    ]
-    telugu_words_found = set()
-    for m in messages:
-        words = re.findall(r'[a-zA-Z]+', m.lower())
-        for w in words:
-            for pattern in telugu_patterns:
-                if pattern in w:
-                    telugu_words_found.add(w)
-                    break
+    # --- Multilingual transliteration detection ---
+    detected_langs = detect_languages(messages)
+    chat_language = None
+    native_words = []
 
-    telugu_words = list(telugu_words_found)[:12]
+    if detected_langs:
+        # Use the top detected language
+        chat_language = detected_langs[0][0]
+        native_words = detected_langs[0][2]
+
+    # --- Nickname detection ---
+    detected_nicknames = detect_nicknames(messages)
+    nicknames = [nick for nick, count in detected_nicknames]
+    nickname_freq = {nick: count for nick, count in detected_nicknames}
 
     # --- Sample messages (real examples for few-shot) ---
     # Pick diverse samples: short, medium, with emoji, questions
@@ -122,9 +249,20 @@ def style_summary(messages):
     if question_ratio > 0.2:
         style_lines.append("Often asks questions back in conversation.")
 
-    if telugu_words:
-        style_lines.append(f"Uses Telugu transliteration words like: {', '.join(telugu_words[:8])}.")
-        style_lines.append("Mixes Telugu transliteration and English naturally (code-switching).")
+    # Language-specific info (multilingual)
+    if chat_language and native_words:
+        style_lines.append(f"Chats in {chat_language} transliteration mixed with English (code-switching).")
+        style_lines.append(f"Common {chat_language} words used: {', '.join(native_words[:10])}.")
+        style_lines.append(f"IMPORTANT: Respond in {chat_language} transliteration + English mix, matching the person's style.")
+
+    # Nickname info
+    if nicknames:
+        nick_parts = []
+        for nick in nicknames[:5]:
+            freq = nickname_freq.get(nick, 0)
+            nick_parts.append(f"'{nick}' ({freq}x)")
+        style_lines.append(f"Uses these nicknames/address terms: {', '.join(nick_parts)}.")
+        style_lines.append(f"Use these nicknames naturally in replies when addressing the other person.")
 
     if common_words:
         style_lines.append(f"Frequently used words: {', '.join(common_words[:10])}.")
@@ -138,6 +276,9 @@ def style_summary(messages):
         "avg_words": avg_words,
         "short_ratio": short_ratio,
         "emoji_ratio": emoji_ratio,
-        "telugu_words": telugu_words,
+        "chat_language": chat_language,
+        "native_words": native_words,
+        "nicknames": nicknames,
+        "nickname_freq": nickname_freq,
         "common_words": common_words,
     }

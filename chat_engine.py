@@ -92,11 +92,19 @@ def build_style_description(style: dict) -> str:
     if convo.get("sends_multiple_msgs"):
         desc.append(f"Often sends 2-3 short messages in a row instead of one long one.")
 
-    # Telugu transliteration
-    telugu = style.get("telugu_words", [])
-    if telugu:
-        desc.append(f"Uses Telugu transliteration words like: {', '.join(telugu[:8])}.")
-        desc.append("Mix of Telugu transliteration and English in the same conversation (code-switching).")
+    # Language (multilingual)
+    chat_language = style.get("chat_language", None)
+    native_words = style.get("native_words", [])
+    if chat_language and native_words:
+        desc.append(f"Chats in {chat_language} transliteration mixed with English (code-switching).")
+        desc.append(f"Common {chat_language} words: {', '.join(native_words[:10])}.")
+        desc.append(f"IMPORTANT: Respond in {chat_language} transliteration + English mix.")
+
+    # Nicknames
+    nicknames = style.get("nicknames", [])
+    if nicknames:
+        desc.append(f"Uses these nicknames/address terms: {', '.join(nicknames[:5])}.")
+        desc.append("Use these nicknames naturally in replies.")
 
     # Common vocabulary
     words = style.get("common_words", [])
@@ -142,7 +150,7 @@ CRITICAL RULES:
 4. Use emoji ONLY if the situation genuinely calls for it (not every message)
 - Prefer these emojis if relevant: {', '.join(style.get("common_emojis", [])[:4])}
 5. Write in LOWERCASE if that's their style
-6. If they mix Telugu transliteration + English, do the same
+6. If they mix a native language transliteration + English, do the same in that language
 7. Do NOT add explanations, labels, or anything meta
 8. Output ONLY the WhatsApp reply message — nothing else
 {"9. Occasionally ask a follow-up question or keep the convo going if it fits naturally." if initiates else "10. Don't over-initiate — respond naturally without forcing conversation."}

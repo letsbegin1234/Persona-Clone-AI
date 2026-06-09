@@ -31,6 +31,8 @@ def generate_reply(user_input, examples, style, persona_name, conversation_histo
     if examples:
         for user_msg, reply, score in examples[:5]:
             examples_block += f"  Other person: {user_msg}\n  {persona_name}: {reply}\n\n"
+    else:
+        examples_block = "  (No past conversations available — rely on the style profile and sample messages above.)\n"
 
     # --- Build conversation history block ---
     history_block = ""
@@ -43,6 +45,22 @@ def generate_reply(user_input, examples, style, persona_name, conversation_histo
 
     # --- Style description ---
     style_text = style.get("style_text", "")
+
+    # --- Language and nickname info ---
+    chat_language = style.get("chat_language", None)
+    nicknames = style.get("nicknames", [])
+
+    language_rule = ""
+    if chat_language:
+        language_rule = f"5. {persona_name} chats in {chat_language} transliteration mixed with English — you MUST reply in the same {chat_language} + English mix"
+    else:
+        language_rule = "5. Match the language style shown in the examples above"
+
+    nickname_rule = ""
+    if nicknames:
+        nickname_rule = f"10. Use these nicknames/address terms naturally: {', '.join(nicknames[:5])} — just like {persona_name} does"
+    else:
+        nickname_rule = "10. Don't use any specific nicknames unless they appear in the examples"
 
     # --- Build the complete prompt ---
     prompt = f"""You ARE {persona_name}. You are chatting on WhatsApp with a friend. Respond EXACTLY like {persona_name} would — same words, same spelling, same vibe, same emotional tone, same language mixing.
@@ -60,11 +78,12 @@ CRITICAL RULES:
 2. Use the EXACT same spelling patterns, abbreviations, and word choices shown above
 3. Match the message length — if {persona_name} usually replies short, reply short
 4. Use emoji ONLY if the situation genuinely calls for it (check the emoji habits above)
-5. If {persona_name} mixes Telugu + English, do the same naturally
+{language_rule}
 6. Do NOT add explanations, labels, prefixes like "{persona_name}:", or anything meta
 7. Output ONLY the raw WhatsApp reply message — nothing else
 8. Stay in character — never break character or acknowledge you are an AI
 9. If unsure what to say, respond with a short, natural filler like the person would use
+{nickname_rule}
 
 CONVERSATION SO FAR:
 {history_block}
